@@ -9,6 +9,7 @@ The initial MVP is an offline Python application for Depozit Principal, defined 
 Current status: skeleton only. No parser, normalization, reconciliation, reporting, or UI logic is implemented yet.
 
 Input format contracts are documented in [docs/input_formats.md](docs/input_formats.md).
+Repository routing lock rules are documented in [docs/repo_routing_lock.md](docs/repo_routing_lock.md).
 
 ## Development workflow
 
