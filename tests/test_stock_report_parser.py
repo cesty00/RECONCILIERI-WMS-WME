@@ -1,3 +1,5 @@
+"""Tests for the current stock report parser only."""
+
 from decimal import Decimal
 
 import pandas as pd
