@@ -14,4 +14,11 @@ The MVP will use Excel input files uploaded or placed in a controlled input loca
 - Reporting layer: future generation of auditable reconciliation outputs.
 - Future Streamlit UI: future local interface for upload, review, and export flows.
 
-This task creates the skeleton only. It does not implement parser, normalization, reconciliation, reporting, or UI logic.
+## Core model layer
+
+- `statuses.py` contains reconciliation, source-system, and movement-direction enums.
+- `stock.py` contains the stock snapshot row model.
+- `events.py` contains WMS and WME event models.
+- Parser error classes are defined before parser implementation.
+
+This task creates the skeleton and foundational model layer only. It does not implement parser, normalization, reconciliation, reporting, or UI logic.
