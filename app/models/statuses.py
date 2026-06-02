@@ -1,0 +1,29 @@
+from enum import Enum
+
+
+class ReconciliationStatus(str, Enum):
+    MATCH = "MATCH"
+    MATCH_DUPA_AGREGARE = "MATCH_DUPA_AGREGARE"
+    MATCH_DUPA_NETARE = "MATCH_DUPA_NETARE"
+    WMS_ONLY = "WMS_ONLY"
+    WME_ONLY = "WME_ONLY"
+    TIMING_RISK = "TIMING_RISK"
+    LOCATION_ONLY = "LOCATION_ONLY"
+    STATUS_ONLY = "STATUS_ONLY"
+    ROUNDING_DIFF = "ROUNDING_DIFF"
+    REVIEW_REQUIRED = "REVIEW_REQUIRED"
+    NOT_RECONCILED = "NOT_RECONCILED"
+
+
+class SourceSystem(str, Enum):
+    WMS = "WMS"
+    WME = "WME"
+    STOCK_REPORT = "STOCK_REPORT"
+    BASELINE_REPORT = "BASELINE_REPORT"
+
+
+class MovementDirection(str, Enum):
+    IN = "IN"
+    OUT = "OUT"
+    NEUTRAL = "NEUTRAL"
+    UNKNOWN = "UNKNOWN"
