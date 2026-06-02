@@ -115,6 +115,29 @@ def parse_stock_report_dataframe(
     return rows
 
 
+def parse_baseline_stock_report_excel(
+    path: str | Path,
+    *,
+    sheet_name: str | int | None = None,
+) -> list[StockSnapshotRow]:
+    """Parse the baseline stock report after WME consumption documents."""
+    return parse_stock_report_excel(
+        path,
+        sheet_name=sheet_name,
+        source=SourceSystem.BASELINE_REPORT,
+    )
+
+
+def parse_baseline_stock_report_dataframe(
+    dataframe: pd.DataFrame,
+) -> list[StockSnapshotRow]:
+    """Parse baseline stock report rows using the stock report column contract."""
+    return parse_stock_report_dataframe(
+        dataframe,
+        source=SourceSystem.BASELINE_REPORT,
+    )
+
+
 def _resolve_columns(columns: Any) -> dict[str, str]:
     resolved: dict[str, str] = {}
     seen: dict[str, str] = {}
