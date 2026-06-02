@@ -8,6 +8,8 @@ The initial MVP is an offline Python application for Depozit Principal, defined 
 
 Current status: skeleton only. No parser, normalization, reconciliation, reporting, or UI logic is implemented yet.
 
+Input format contracts are documented in [docs/input_formats.md](docs/input_formats.md).
+
 ## Development workflow
 
 Development is performed only through controlled GitHub branches, commits, and Pull Requests. Changes must not be made directly on `main`, and Pull Requests must remain reviewable and scoped.
