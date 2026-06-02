@@ -1,0 +1,7 @@
+pandas
+openpyxl
+xlrd
+streamlit
+python-dateutil
+pytest
+xlsxwriter
