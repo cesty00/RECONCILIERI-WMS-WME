@@ -10,6 +10,7 @@ Current status: skeleton only. No parser, normalization, reconciliation, reporti
 
 Input format contracts are documented in [docs/input_formats.md](docs/input_formats.md).
 Repository routing lock rules are documented in [docs/repo_routing_lock.md](docs/repo_routing_lock.md).
+PR creation read-back rules are documented in [docs/pr_creation_guard.md](docs/pr_creation_guard.md).
 
 ## Development workflow
 
