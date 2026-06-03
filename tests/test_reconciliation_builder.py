@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from app.aggregation import AggregatedWmeDocument
@@ -7,11 +7,11 @@ from app.models import ReconciliationStatus, WmeEvent, WmsEvent
 from app.reconciliation import EvidenceSeverity, build_pair_evidence
 
 
-def _wms_event(document="SFA 47326", quantity="5.75", product_code="SKU-001"):
+def _wms_event(document="SFA 47326", quantity="5.75", product_code="SKU-001", event_datetime=None):
     return WmsEvent(
         product_code=product_code,
         product_name="Anonymized product",
-        event_datetime=None,
+        event_datetime=event_datetime,
         operation_type="Mutare",
         document_number=document,
         normalized_document=document,
@@ -23,14 +23,14 @@ def _wms_event(document="SFA 47326", quantity="5.75", product_code="SKU-001"):
     )
 
 
-def _wme_event(document="AE 47326", in_quantity="5.75", out_quantity="0", product_code="SKU-001"):
+def _wme_event(document="AE 47326", in_quantity="5.75", out_quantity="0", product_code="SKU-001", event_date=date(2026, 6, 2)):
     return WmeEvent(
         product_name="Anonymized product",
         internal_product_code=product_code,
         document_type="AE",
         document_number=document,
         normalized_document=document,
-        event_date=date(2026, 6, 2),
+        event_date=event_date,
         in_quantity=Decimal(in_quantity),
         out_quantity=Decimal(out_quantity),
         stock_after=Decimal("10.00"),
@@ -40,15 +40,15 @@ def _wme_event(document="AE 47326", in_quantity="5.75", out_quantity="0", produc
     )
 
 
-def _wme_document(document="AE 47326", in_quantity="5.75", out_quantity="0", product_code="SKU-001"):
-    event = _wme_event(document=document, in_quantity=in_quantity, out_quantity=out_quantity, product_code=product_code)
+def _wme_document(document="AE 47326", in_quantity="5.75", out_quantity="0", product_code="SKU-001", event_date=date(2026, 6, 2)):
+    event = _wme_event(document=document, in_quantity=in_quantity, out_quantity=out_quantity, product_code=product_code, event_date=event_date)
     return AggregatedWmeDocument(
         product_code=product_code,
         normalized_document=document,
         document_type="AE",
         product_name="Anonymized product",
         document_number=document,
-        event_date=date(2026, 6, 2),
+        event_date=event_date,
         in_quantity=Decimal(in_quantity),
         out_quantity=Decimal(out_quantity),
         source_row_count=1,
@@ -97,3 +97,24 @@ def test_build_pair_evidence_adds_product_warning_when_product_code_missing():
 
     assert evidence.status_ceiling == ReconciliationStatus.REVIEW_REQUIRED
     assert any(note.severity == EvidenceSeverity.WARNING and note.code == "PRODUCT_MISSING" for note in evidence.notes)
+
+
+def test_build_pair_evidence_adds_timing_missing_warning():
+    evidence = build_pair_evidence(_wms_event(event_datetime=None), _wme_document())
+
+    assert evidence.status_ceiling == ReconciliationStatus.REVIEW_REQUIRED
+    assert any(note.severity == EvidenceSeverity.WARNING and note.code == "TIMING_MISSING" for note in evidence.notes)
+
+
+def test_build_pair_evidence_adds_timing_within_window_info():
+    evidence = build_pair_evidence(_wms_event(event_datetime=datetime(2026, 6, 3, 10, 0)), _wme_document(event_date=date(2026, 6, 2)))
+
+    assert evidence.status_ceiling == ReconciliationStatus.REVIEW_REQUIRED
+    assert any(note.severity == EvidenceSeverity.INFO and note.code == "TIMING_WITHIN_WINDOW" for note in evidence.notes)
+
+
+def test_build_pair_evidence_adds_timing_outside_window_warning():
+    evidence = build_pair_evidence(_wms_event(event_datetime=datetime(2026, 6, 5, 10, 0)), _wme_document(event_date=date(2026, 6, 2)))
+
+    assert evidence.status_ceiling == ReconciliationStatus.REVIEW_REQUIRED
+    assert any(note.severity == EvidenceSeverity.WARNING and note.code == "TIMING_OUTSIDE_WINDOW" for note in evidence.notes)
