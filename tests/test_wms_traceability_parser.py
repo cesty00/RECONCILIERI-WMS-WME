@@ -32,7 +32,7 @@ def _valid_wms_traceability_dataframe() -> pd.DataFrame:
                 "Lot": "LOT-001",
                 "Cantitate": "4,50",
                 "Partener": "Anonymized partner",
-                "Document comanda": "DOC-CMD-001",
+                "Document comanda": "SFA-00047326",
                 "Document intrare": "DOC-IN-001",
             }
         ]
@@ -48,8 +48,8 @@ def test_parse_wms_traceability_dataframe_maps_event_fields() -> None:
     assert event.product_name == "Anonymized product"
     assert event.event_datetime == datetime(2026, 6, 2, 10, 30)
     assert event.operation_type == "Mutare"
-    assert event.document_number == "DOC-CMD-001"
-    assert event.normalized_document == "DOC-CMD-001"
+    assert event.document_number == "SFA-00047326"
+    assert event.normalized_document == "SFA 47326"
     assert event.source_location == "REC100"
     assert event.destination_location == "RAFT-001"
     assert event.lot == "LOT-001"
@@ -65,6 +65,17 @@ def test_parse_wms_traceability_dataframe_falls_back_to_order_number() -> None:
     events = parse_wms_traceability_dataframe(dataframe)
 
     assert events[0].document_number == "CMD-001"
+    assert events[0].normalized_document == "CMD 1"
+
+
+def test_parse_wms_traceability_dataframe_keeps_raw_document_when_not_normalizable() -> None:
+    dataframe = _valid_wms_traceability_dataframe()
+    dataframe.loc[0, "Document comanda"] = "free-text-document"
+
+    events = parse_wms_traceability_dataframe(dataframe)
+
+    assert events[0].document_number == "free-text-document"
+    assert events[0].normalized_document == "free-text-document"
 
 
 def test_parse_wms_traceability_dataframe_requires_contract_columns() -> None:
