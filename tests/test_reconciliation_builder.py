@@ -23,7 +23,7 @@ def _wms_event(document="SFA 47326", quantity="5.75"):
     )
 
 
-def _wme_event(document="AE 47326", in_quantity="0", out_quantity="5.75"):
+def _wme_event(document="AE 47326", in_quantity="5.75", out_quantity="0"):
     return WmeEvent(
         product_name="Anonymized product",
         internal_product_code="SKU-001",
@@ -40,7 +40,7 @@ def _wme_event(document="AE 47326", in_quantity="0", out_quantity="5.75"):
     )
 
 
-def _wme_document(document="AE 47326", in_quantity="0", out_quantity="5.75"):
+def _wme_document(document="AE 47326", in_quantity="5.75", out_quantity="0"):
     event = _wme_event(document=document, in_quantity=in_quantity, out_quantity=out_quantity)
     return AggregatedWmeDocument(
         product_code="SKU-001",
@@ -70,7 +70,7 @@ def test_build_pair_evidence_keeps_review_required_even_for_candidate_alias_and_
 
 
 def test_build_pair_evidence_adds_quantity_warning_when_quantities_differ():
-    evidence = build_pair_evidence(_wms_event(quantity="5.75"), _wme_document(out_quantity="4.00"))
+    evidence = build_pair_evidence(_wms_event(quantity="5.75"), _wme_document(in_quantity="4.00"))
 
     assert evidence.quantity_difference == Decimal("1.75")
     assert evidence.status_ceiling == ReconciliationStatus.REVIEW_REQUIRED
