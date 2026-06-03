@@ -11,6 +11,11 @@ from app.reconciliation.quantity import (
     QuantityRelation,
     compare_quantities,
 )
+from app.reconciliation.timing import (
+    TimingComparison,
+    TimingRelation,
+    compare_event_dates,
+)
 
 __all__ = [
     "EvidenceNote",
@@ -20,6 +25,9 @@ __all__ = [
     "ReconciliationCandidateInput",
     "ReconciliationEvidence",
     "SourceReference",
+    "TimingComparison",
+    "TimingRelation",
     "build_pair_evidence",
+    "compare_event_dates",
     "compare_quantities",
 ]
