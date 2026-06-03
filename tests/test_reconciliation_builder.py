@@ -7,9 +7,9 @@ from app.models import ReconciliationStatus, WmeEvent, WmsEvent
 from app.reconciliation import EvidenceSeverity, build_pair_evidence
 
 
-def _wms_event(document="SFA 47326", quantity="5.75"):
+def _wms_event(document="SFA 47326", quantity="5.75", product_code="SKU-001"):
     return WmsEvent(
-        product_code="SKU-001",
+        product_code=product_code,
         product_name="Anonymized product",
         event_datetime=None,
         operation_type="Mutare",
@@ -23,10 +23,10 @@ def _wms_event(document="SFA 47326", quantity="5.75"):
     )
 
 
-def _wme_event(document="AE 47326", in_quantity="5.75", out_quantity="0"):
+def _wme_event(document="AE 47326", in_quantity="5.75", out_quantity="0", product_code="SKU-001"):
     return WmeEvent(
         product_name="Anonymized product",
-        internal_product_code="SKU-001",
+        internal_product_code=product_code,
         document_type="AE",
         document_number=document,
         normalized_document=document,
@@ -40,10 +40,10 @@ def _wme_event(document="AE 47326", in_quantity="5.75", out_quantity="0"):
     )
 
 
-def _wme_document(document="AE 47326", in_quantity="5.75", out_quantity="0"):
-    event = _wme_event(document=document, in_quantity=in_quantity, out_quantity=out_quantity)
+def _wme_document(document="AE 47326", in_quantity="5.75", out_quantity="0", product_code="SKU-001"):
+    event = _wme_event(document=document, in_quantity=in_quantity, out_quantity=out_quantity, product_code=product_code)
     return AggregatedWmeDocument(
-        product_code="SKU-001",
+        product_code=product_code,
         normalized_document=document,
         document_type="AE",
         product_name="Anonymized product",
@@ -83,3 +83,17 @@ def test_build_pair_evidence_adds_document_warning_when_no_candidate():
     assert evidence.document_relation == DocumentCandidateRelation.NO_CANDIDATE
     assert evidence.status_ceiling == ReconciliationStatus.REVIEW_REQUIRED
     assert any(note.severity == EvidenceSeverity.WARNING and note.code == "DOCUMENT" for note in evidence.notes)
+
+
+def test_build_pair_evidence_adds_product_warning_when_product_codes_differ():
+    evidence = build_pair_evidence(_wms_event(product_code="SKU-001"), _wme_document(product_code="SKU-002"))
+
+    assert evidence.status_ceiling == ReconciliationStatus.REVIEW_REQUIRED
+    assert any(note.severity == EvidenceSeverity.WARNING and note.code == "PRODUCT_DIFFERENT" for note in evidence.notes)
+
+
+def test_build_pair_evidence_adds_product_warning_when_product_code_missing():
+    evidence = build_pair_evidence(_wms_event(product_code="SKU-001"), _wme_document(product_code=None))
+
+    assert evidence.status_ceiling == ReconciliationStatus.REVIEW_REQUIRED
+    assert any(note.severity == EvidenceSeverity.WARNING and note.code == "PRODUCT_MISSING" for note in evidence.notes)
