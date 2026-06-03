@@ -8,6 +8,7 @@ from typing import Any
 import pandas as pd
 
 from app.models import WmeEvent
+from app.normalization import document_key_from_type_and_number
 from app.parsers.errors import EmptyWorkbookError, InvalidWorkbookFormatError, UnsupportedFileTypeError
 
 SUPPORTED_EXTENSIONS = {".xlsx", ".xls"}
@@ -31,7 +32,6 @@ def parse_wme_stock_card_excel(path: str | Path, *, sheet_name: str | int | None
     workbook_path = Path(path)
     if workbook_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
         raise UnsupportedFileTypeError(f"Unsupported WME stock card file type: {workbook_path.suffix}")
-
     excel_file = pd.ExcelFile(workbook_path)
     if not excel_file.sheet_names:
         raise EmptyWorkbookError("Workbook does not contain any sheets")
@@ -39,7 +39,6 @@ def parse_wme_stock_card_excel(path: str | Path, *, sheet_name: str | int | None
         if len(excel_file.sheet_names) != 1:
             raise InvalidWorkbookFormatError("Multiple sheets found; explicit sheet_name is required")
         sheet_name = excel_file.sheet_names[0]
-
     dataframe = pd.read_excel(excel_file, sheet_name=sheet_name, header=None)
     return parse_wme_stock_card_dataframe(dataframe)
 
@@ -49,25 +48,25 @@ def parse_wme_stock_card_dataframe(dataframe: pd.DataFrame) -> list[WmeEvent]:
         raise EmptyWorkbookError("WME stock card has no data rows")
     if dataframe.shape[1] < MIN_COLUMNS:
         raise InvalidWorkbookFormatError("WME stock card positional layout requires at least 15 columns")
-
     events: list[WmeEvent] = []
     for _, raw_row in dataframe.iterrows():
         if _is_empty_row(raw_row):
             continue
-
         document_type = _optional_text(raw_row.iloc[COLUMN_DOCUMENT_TYPE])
         if document_type is None:
             continue
         if document_type not in VALID_DOCUMENT_TYPES:
             continue
-
         document_number = _required_text(raw_row.iloc[COLUMN_DOCUMENT_NUMBER], "document number")
-        event = WmeEvent(
+        normalized_document = document_key_from_type_and_number(document_type, document_number)
+        if normalized_document is None:
+            raise InvalidWorkbookFormatError("Invalid document type or number")
+        events.append(WmeEvent(
             product_name=_required_text(raw_row.iloc[COLUMN_PRODUCT_NAME], "product name"),
             internal_product_code=_required_text(raw_row.iloc[COLUMN_INTERNAL_PRODUCT_CODE], "internal product code"),
             document_type=document_type,
             document_number=document_number,
-            normalized_document=f"{document_type} {document_number}",
+            normalized_document=normalized_document,
             event_date=_to_date(raw_row.iloc[COLUMN_DATE], "date"),
             in_quantity=_to_decimal_or_zero(raw_row.iloc[COLUMN_IN_QUANTITY], "in quantity"),
             out_quantity=_to_decimal_or_zero(raw_row.iloc[COLUMN_OUT_QUANTITY], "out quantity"),
@@ -76,9 +75,7 @@ def parse_wme_stock_card_dataframe(dataframe: pd.DataFrame) -> list[WmeEvent]:
             unit=_optional_text(raw_row.iloc[COLUMN_UNIT]),
             partner=_optional_text(raw_row.iloc[COLUMN_PARTNER]),
             raw=dict(raw_row),
-        )
-        events.append(event)
-
+        ))
     if not events:
         raise EmptyWorkbookError("WME stock card has no valid movement rows")
     return events
