@@ -16,6 +16,7 @@ from app.reconciliation.evidence import (
     SourceReference,
 )
 from app.reconciliation.quantity import QuantityRelation, compare_quantities
+from app.reconciliation.timing import TimingRelation, compare_event_dates
 
 
 def build_pair_evidence(wms_event: WmsEvent, wme_document: AggregatedWmeDocument) -> ReconciliationEvidence:
@@ -29,11 +30,13 @@ def build_pair_evidence(wms_event: WmsEvent, wme_document: AggregatedWmeDocument
     )
     product_relation = compare_product_codes(wms_event.product_code, wme_document.product_code)
     quantity_relation = compare_quantities(wms_event.quantity, wme_document.net_quantity)
+    timing_relation = compare_event_dates(wms_event.event_datetime, wme_document.event_date)
 
     notes = _build_notes(
         document_relation.relation,
         product_relation.relation,
         quantity_relation.relation,
+        timing_relation.relation,
     )
     candidate = ReconciliationCandidateInput(
         product_code=wms_event.product_code,
@@ -67,6 +70,7 @@ def _build_notes(
     document_relation: DocumentCandidateRelation,
     product_relation: ProductCodeRelation,
     quantity_relation: QuantityRelation,
+    timing_relation: TimingRelation,
 ) -> list[EvidenceNote]:
     notes: list[EvidenceNote] = []
     if document_relation == DocumentCandidateRelation.NO_CANDIDATE:
@@ -83,5 +87,12 @@ def _build_notes(
         notes.append(EvidenceNote(EvidenceSeverity.WARNING, "QUANTITY", "Quantity difference outside tolerance"))
     elif quantity_relation == QuantityRelation.ROUNDING_DIFF:
         notes.append(EvidenceNote(EvidenceSeverity.INFO, "ROUNDING", "Quantity difference within tolerance"))
+
+    if timing_relation == TimingRelation.MISSING:
+        notes.append(EvidenceNote(EvidenceSeverity.WARNING, "TIMING_MISSING", "Timing evidence missing on one side"))
+    elif timing_relation == TimingRelation.OUTSIDE_WINDOW:
+        notes.append(EvidenceNote(EvidenceSeverity.WARNING, "TIMING_OUTSIDE_WINDOW", "Timing difference outside configured window"))
+    elif timing_relation == TimingRelation.WITHIN_WINDOW:
+        notes.append(EvidenceNote(EvidenceSeverity.INFO, "TIMING_WITHIN_WINDOW", "Timing difference within configured window"))
 
     return notes
