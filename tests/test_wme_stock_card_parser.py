@@ -13,7 +13,7 @@ from app.parsers.wme_stock_card import parse_wme_stock_card_dataframe, parse_wme
 def _movement_row(document_type: str = "BC") -> list[object]:
     row: list[object] = [None] * 15
     row[1] = document_type
-    row[2] = "12345"
+    row[2] = "00012345"
     row[3] = "02.06.2026"
     row[4] = "2,50"
     row[5] = "5,75"
@@ -39,7 +39,7 @@ def test_parse_wme_stock_card_dataframe_maps_positional_event_fields() -> None:
     assert len(events) == 1
     event = events[0]
     assert event.document_type == "BC"
-    assert event.document_number == "12345"
+    assert event.document_number == "00012345"
     assert event.normalized_document == "BC 12345"
     assert event.event_date == date(2026, 6, 2)
     assert event.in_quantity == Decimal("2.50")
