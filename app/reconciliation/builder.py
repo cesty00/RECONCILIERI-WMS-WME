@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from app.aggregation import AggregatedWmeDocument
-from app.matching import DocumentCandidateRelation, compare_document_candidates
+from app.matching import (
+    DocumentCandidateRelation,
+    ProductCodeRelation,
+    compare_document_candidates,
+    compare_product_codes,
+)
 from app.models import ReconciliationStatus, WmsEvent
 from app.reconciliation.evidence import (
     EvidenceNote,
@@ -22,9 +27,14 @@ def build_pair_evidence(wms_event: WmsEvent, wme_document: AggregatedWmeDocument
         wms_event.normalized_document,
         wme_document.normalized_document,
     )
+    product_relation = compare_product_codes(wms_event.product_code, wme_document.product_code)
     quantity_relation = compare_quantities(wms_event.quantity, wme_document.net_quantity)
 
-    notes = _build_notes(document_relation.relation, quantity_relation.relation)
+    notes = _build_notes(
+        document_relation.relation,
+        product_relation.relation,
+        quantity_relation.relation,
+    )
     candidate = ReconciliationCandidateInput(
         product_code=wms_event.product_code,
         normalized_document=wms_event.normalized_document,
@@ -55,6 +65,7 @@ def build_pair_evidence(wms_event: WmsEvent, wme_document: AggregatedWmeDocument
 
 def _build_notes(
     document_relation: DocumentCandidateRelation,
+    product_relation: ProductCodeRelation,
     quantity_relation: QuantityRelation,
 ) -> list[EvidenceNote]:
     notes: list[EvidenceNote] = []
@@ -62,6 +73,11 @@ def _build_notes(
         notes.append(EvidenceNote(EvidenceSeverity.WARNING, "DOCUMENT", "No document candidate relationship"))
     elif document_relation == DocumentCandidateRelation.CANDIDATE_ALIAS:
         notes.append(EvidenceNote(EvidenceSeverity.INFO, "DOCUMENT_ALIAS", "Document alias candidate only"))
+
+    if product_relation == ProductCodeRelation.MISSING:
+        notes.append(EvidenceNote(EvidenceSeverity.WARNING, "PRODUCT_MISSING", "Product code missing on one side"))
+    elif product_relation == ProductCodeRelation.DIFFERENT:
+        notes.append(EvidenceNote(EvidenceSeverity.WARNING, "PRODUCT_DIFFERENT", "Product codes differ"))
 
     if quantity_relation == QuantityRelation.DIFFERENT:
         notes.append(EvidenceNote(EvidenceSeverity.WARNING, "QUANTITY", "Quantity difference outside tolerance"))
