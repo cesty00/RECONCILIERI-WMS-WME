@@ -7,6 +7,7 @@ from typing import Any
 import pandas as pd
 
 from app.models import WmsEvent
+from app.normalization import canonical_document
 from app.parsers.errors import EmptyWorkbookError, InvalidWorkbookFormatError, MissingRequiredColumnError, UnsupportedFileTypeError
 
 REQUIRED_COLUMNS: dict[str, str] = {
@@ -32,7 +33,6 @@ def parse_wms_traceability_excel(path: str | Path, *, sheet_name: str | int | No
     workbook_path = Path(path)
     if workbook_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
         raise UnsupportedFileTypeError(f"Unsupported WMS traceability file type: {workbook_path.suffix}")
-
     excel_file = pd.ExcelFile(workbook_path)
     if not excel_file.sheet_names:
         raise EmptyWorkbookError("Workbook does not contain any sheets")
@@ -40,14 +40,12 @@ def parse_wms_traceability_excel(path: str | Path, *, sheet_name: str | int | No
         if len(excel_file.sheet_names) != 1:
             raise InvalidWorkbookFormatError("Multiple sheets found; explicit sheet_name is required")
         sheet_name = excel_file.sheet_names[0]
-
     return parse_wms_traceability_dataframe(pd.read_excel(excel_file, sheet_name=sheet_name))
 
 
 def parse_wms_traceability_dataframe(dataframe: pd.DataFrame) -> list[WmsEvent]:
     if dataframe.empty:
         raise EmptyWorkbookError("WMS traceability has no data rows")
-
     column_map = _resolve_columns(dataframe.columns)
     events: list[WmsEvent] = []
     for _, raw_row in dataframe.iterrows():
@@ -56,22 +54,21 @@ def parse_wms_traceability_dataframe(dataframe: pd.DataFrame) -> list[WmsEvent]:
         document_number = _first_text(raw_row, column_map, ["documentcomanda", "documentintrare", "numarcomanda"])
         if document_number is None:
             raise InvalidWorkbookFormatError("Missing document or order reference")
-        events.append(
-            WmsEvent(
-                product_code=_required_text(raw_row[column_map["codarticol"]], "Cod articol"),
-                product_name=_required_text(raw_row[column_map["denumirearticol"]], "Denumire articol"),
-                event_datetime=_to_datetime(raw_row[column_map["data"]], "Data"),
-                operation_type=_required_text(raw_row[column_map["tipoperatiune"]], "Tip operatiune"),
-                document_number=document_number,
-                normalized_document=document_number,
-                source_location=_optional_text(raw_row[column_map["locatiesursa"]]),
-                destination_location=_optional_text(raw_row[column_map["locatiedestinatie"]]),
-                lot=_optional_text(raw_row[column_map["lot"]]),
-                quantity=_to_decimal(raw_row[column_map["cantitate"]], "Cantitate"),
-                partner=_optional_text(raw_row[column_map["partener"]]),
-                raw=dict(raw_row),
-            )
-        )
+        normalized_document = canonical_document(document_number) or document_number
+        events.append(WmsEvent(
+            product_code=_required_text(raw_row[column_map["codarticol"]], "Cod articol"),
+            product_name=_required_text(raw_row[column_map["denumirearticol"]], "Denumire articol"),
+            event_datetime=_to_datetime(raw_row[column_map["data"]], "Data"),
+            operation_type=_required_text(raw_row[column_map["tipoperatiune"]], "Tip operatiune"),
+            document_number=document_number,
+            normalized_document=normalized_document,
+            source_location=_optional_text(raw_row[column_map["locatiesursa"]]),
+            destination_location=_optional_text(raw_row[column_map["locatiedestinatie"]]),
+            lot=_optional_text(raw_row[column_map["lot"]]),
+            quantity=_to_decimal(raw_row[column_map["cantitate"]], "Cantitate"),
+            partner=_optional_text(raw_row[column_map["partener"]]),
+            raw=dict(raw_row),
+        ))
     if not events:
         raise EmptyWorkbookError("WMS traceability has no valid data rows")
     return events
