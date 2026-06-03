@@ -1,3 +1,4 @@
+from app.reconciliation.builder import build_pair_evidence
 from app.reconciliation.evidence import (
     EvidenceNote,
     EvidenceSeverity,
@@ -19,5 +20,6 @@ __all__ = [
     "ReconciliationCandidateInput",
     "ReconciliationEvidence",
     "SourceReference",
+    "build_pair_evidence",
     "compare_quantities",
 ]
